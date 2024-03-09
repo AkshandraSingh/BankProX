@@ -1,0 +1,6 @@
+\.env
+\bankenv
+\dist
+\package-lock.json
+\tsconfig.json
+\node_modules
