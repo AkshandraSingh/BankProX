@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 const userSchema = require("../models/userModel");
+const emailService = require("../services/emailService");
 
 module.exports = {
   registerUser: async (req: Request, res: Response) => {
@@ -35,14 +36,15 @@ module.exports = {
         success: true,
         message: "User registered successfully!",
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).send({
         success: false,
         message: "Error!",
-        error: error,
+        error: error.message,
       });
     }
   },
+
   loginUser: async (req: Request, res: Response) => {
     try {
       const { userEmail, userPassword } = req.body; // ? Extract Data from body
@@ -76,11 +78,88 @@ module.exports = {
         message: "Authentication successful.",
         token: token,
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).send({
         success: false,
         message: "Error!",
-        error: error,
+        error: error.message,
+      });
+    }
+  },
+
+  forgetPassword: async (req: Request, res: Response) => {
+    try {
+      const { userEmail } = req.body; //? Extract Data from body
+      const isEmail = await userSchema.findOne({
+        userEmail: userEmail,
+      });
+      if (!isEmail) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid credentials. User not found.",
+        });
+      }
+      const userData = isEmail;
+      const token: string = jwt.sign({ userData }, "BankProX", {
+        //? Creating Token with JWT
+        expiresIn: "1h",
+      });
+      const link = `https://BankProX/resetPassword/${userData._id}/${token}`;
+      await emailService.mailOptions(userEmail, link);
+      res.status(200).send({
+        success: true,
+        message: "Email has been sended",
+        userId: userData._id,
+        token: token,
+      });
+    } catch (error: any) {
+      res.status(500).send({
+        success: false,
+        message: "Error!",
+        error: error.message,
+      });
+    }
+  },
+
+  resetPassword: async (req: Request, res: Response) => {
+    try {
+      const { newPassword, confirmPassword } = req.body;
+      const { userId, token } = req.params;
+
+      // Verify if the token is correct and not expired
+      const isTokenCorrect = jwt.verify(token, "BankProX");
+
+      if (isTokenCorrect) {
+        if (newPassword === confirmPassword) {
+          const userData = await userSchema.findById(userId);
+          const bcryptPassword: string = await bcrypt.hash(newPassword, 10);
+
+          // Update the user's password
+          userData.userPassword = bcryptPassword;
+          await userData.save();
+
+          // Send response
+          res.status(201).json({
+            success: true,
+            message: "Password Updated",
+          });
+        } else {
+          res.status(401).send({
+            success: false,
+            message: "New password and confirm password do not match",
+          });
+        }
+      } else {
+        res.status(401).send({
+          success: false,
+          message: "Token is incorrect or expired",
+        });
+      }
+    } catch (error: any) {
+      res.status(500).send({
+        success: false,
+        message: "Error",
+        error: error.message,
       });
     }
   },
