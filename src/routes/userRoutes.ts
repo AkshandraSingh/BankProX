@@ -15,5 +15,6 @@ userRoute.post(
   userController.addProfilePic
 );
 userRoute.post("/setNewPassword/:userId", userController.setNewPassword);
+userRoute.delete("/deleteAccount/:userId", userController.deleteAccount);
 
 module.exports = userRoute;

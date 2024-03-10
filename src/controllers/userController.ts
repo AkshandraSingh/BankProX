@@ -230,4 +230,21 @@ module.exports = {
       });
     }
   },
+
+  deleteAccount: async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const userData = await userSchema.findByIdAndDelete(userId);
+      res.status(200).send({
+        success: true,
+        message: "User deleted",
+      });
+    } catch (error: any) {
+      res.status(500).send({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
 };
