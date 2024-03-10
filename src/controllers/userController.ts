@@ -186,7 +186,43 @@ module.exports = {
         updatedData: updateUserData,
       });
     } catch (error: any) {
-      console.error("Internal server error:", error);
+      res.status(500).send({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
+
+  setNewPassword: async (req: Request, res: Response) => {
+    try {
+      const { newPassword, confirmPassword, oldPassword } = req.body;
+      const { userId } = req.params;
+      const userData = await userSchema.findById(userId);
+      const isPasswordCorrect = await bcrypt.compare(
+        oldPassword,
+        userData.userPassword
+      );
+      if (!isPasswordCorrect) {
+        return res.status(401).send({
+          success: false,
+          message: "Old password is incorrect",
+        });
+      }
+      if (newPassword !== confirmPassword) {
+        return res.status(401).send({
+          success: false,
+          message: "New password and confirm password do not match",
+        });
+      }
+      const bcryptPassword: string = await bcrypt.hash(newPassword, 10);
+      userData.userPassword = bcryptPassword;
+      await userData.save();
+      res.status(201).send({
+        success: true,
+        message: "Password Updated",
+      });
+    } catch (error: any) {
       res.status(500).send({
         success: false,
         message: "Internal server error",

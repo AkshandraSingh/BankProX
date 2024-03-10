@@ -14,5 +14,6 @@ userRoute.post(
   upload.single("userProfilePic"),
   userController.addProfilePic
 );
+userRoute.post("/setNewPassword/:userId", userController.setNewPassword);
 
 module.exports = userRoute;
