@@ -125,20 +125,13 @@ module.exports = {
     try {
       const { newPassword, confirmPassword } = req.body;
       const { userId, token } = req.params;
-
-      // Verify if the token is correct and not expired
       const isTokenCorrect = jwt.verify(token, "BankProX");
-
       if (isTokenCorrect) {
         if (newPassword === confirmPassword) {
           const userData = await userSchema.findById(userId);
           const bcryptPassword: string = await bcrypt.hash(newPassword, 10);
-
-          // Update the user's password
           userData.userPassword = bcryptPassword;
           await userData.save();
-
-          // Send response
           res.status(201).json({
             success: true,
             message: "Password Updated",
@@ -159,6 +152,44 @@ module.exports = {
       res.status(500).send({
         success: false,
         message: "Error",
+        error: error.message,
+      });
+    }
+  },
+
+  addProfilePic: async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.userId;
+
+      if (!req.file) {
+        return res.status(400).send({
+          success: false,
+          message: "No file uploaded",
+        });
+      }
+
+      const userProfilePic: string = `/upload/userProfilePic/${req.file.filename}`;
+      const updateUserData = await userSchema.findByIdAndUpdate(
+        userId,
+        { userProfilePic: userProfilePic },
+        { new: true }
+      );
+      if (!updateUserData) {
+        return res.status(404).send({
+          success: false,
+          message: "User not found or update failed",
+        });
+      }
+      res.status(200).send({
+        success: true,
+        message: "User profile updated",
+        updatedData: updateUserData,
+      });
+    } catch (error: any) {
+      console.error("Internal server error:", error);
+      res.status(500).send({
+        success: false,
+        message: "Internal server error",
         error: error.message,
       });
     }
