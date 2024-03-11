@@ -14,37 +14,39 @@ function generateRandomNumber(length: number): string {
   return result;
 }
 
-export const createAccount = async (req: Request, res: Response) => {
-  try {
-    const userId: string = req.params.userId;
-    const accountData = new accountSchema(req.body);
-    const pin = generateRandomNumber(4);
-    const accountNumber = generateRandomNumber(10);
-    const bcryptPin: string = await bcrypt.hash(pin, 10);
-    const bcryptAccountNumber: string = await bcrypt.hash(accountNumber, 10);
-    const bcryptAccountBalance: string = await bcrypt.hash(
-      req.body.accountBalance.toString(),
-      10
-    );
-    accountData.accountNumber = bcryptAccountNumber;
-    accountData.pin = bcryptPin;
-    accountData.accountBalance = bcryptAccountBalance;
-    accountData.userId = userId;
-    await accountData.save();
-    res.status(202).json({
-      success: true,
-      message: "Your Account Created",
-      accountDetails: {
-        accountNumber: accountNumber,
-        pin: pin,
-        accountBalance: req.body.accountBalance,
-      },
-    });
-  } catch (error: any) {
-    res.status(500).send({
-      success: false,
-      message: "Error!",
-      error: error.message,
-    });
-  }
+module.exports = {
+  createAccount: async (req: Request, res: Response) => {
+    try {
+      const userId: string = req.params.userId;
+      const accountData = new accountSchema(req.body);
+      const pin = generateRandomNumber(4);
+      const accountNumber = generateRandomNumber(10);
+      const bcryptPin: string = await bcrypt.hash(pin, 10);
+      const bcryptAccountNumber: string = await bcrypt.hash(accountNumber, 10);
+      const bcryptAccountBalance: string = await bcrypt.hash(
+        req.body.accountBalance.toString(),
+        10
+      );
+      accountData.accountNumber = bcryptAccountNumber;
+      accountData.pin = bcryptPin;
+      accountData.accountBalance = bcryptAccountBalance;
+      accountData.userId = userId;
+      await accountData.save();
+      res.status(202).json({
+        success: true,
+        message: "Your Account Created",
+        accountDetails: {
+          accountNumber: accountNumber,
+          pin: pin,
+          accountBalance: req.body.accountBalance,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).send({
+        success: false,
+        message: "Error!",
+        error: error.message,
+      });
+    }
+  },
 };
