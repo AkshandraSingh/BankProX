@@ -85,4 +85,45 @@ module.exports = {
       });
     }
   },
+
+  lockAndUnlockAccount: async (req: Request, res: Response) => {
+    try {
+      const { accountNumber, accountPin } = req.body;
+      const isAccountNumberExist = await accountSchema.findOne({
+        accountNumber: accountNumber,
+      });
+      const isPinCorrect = await bcrypt.compare(
+        accountPin.toString(),
+        isAccountNumberExist.pin
+      );
+      if (!isAccountNumberExist) {
+        return res.status(404).json({
+          success: false,
+          message: "Account Number Does Not Exist",
+        });
+      }
+      if (!isPinCorrect) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid Pin",
+        });
+      }
+      if (isAccountNumberExist.isLocked === true) {
+        isAccountNumberExist.isLocked = false;
+      } else {
+        isAccountNumberExist.isLocked = true;
+      }
+      await isAccountNumberExist.save();
+      res.status(202).json({
+        success: true,
+        message: "Account is Edited!",
+      });
+    } catch (error: any) {
+      res.status(500).send({
+        success: false,
+        message: "Error!",
+        error: error.message,
+      });
+    }
+  },
 };

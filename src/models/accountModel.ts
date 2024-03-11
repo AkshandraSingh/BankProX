@@ -18,7 +18,7 @@ const accountSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  lock: {
+  isLocked: {
     type: Boolean,
     default: false,
   },
