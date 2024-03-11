@@ -7,11 +7,15 @@ const accountSchema = new mongoose.Schema({
     required: true,
   },
   accountNumber: {
-    type: Number,
+    type: String,
     required: true,
   },
   accountBalance: {
-    type: Number,
+    type: String,
+    default: 0,
+  },
+  pin: {
+    type: String,
     required: true,
   },
   lock: {
