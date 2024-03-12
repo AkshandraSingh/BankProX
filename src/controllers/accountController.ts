@@ -127,8 +127,8 @@ module.exports = {
   deposit: async (req: Request, res: Response) => {
     try {
       const { accountNumber, accountPin, amount } = req.body;
-      const account = await accountSchema.findOne({ accountNumber });
-      if (!account) {
+      const accountData = await accountSchema.findOne({ accountNumber });
+      if (!accountData) {
         return res.status(404).json({
           success: false,
           message: "Account Number Does Not Exist",
@@ -136,7 +136,7 @@ module.exports = {
       }
       const isPinCorrect: boolean = await bcrypt.compare(
         accountPin.toString(),
-        account.pin
+        accountData.pin
       );
       if (!isPinCorrect) {
         return res.status(401).json({
@@ -144,7 +144,7 @@ module.exports = {
           message: "Invalid Pin",
         });
       }
-      if (account.isLocked) {
+      if (accountData.isLocked) {
         return res.status(401).json({
           success: false,
           message: "Account is Locked",
@@ -156,19 +156,74 @@ module.exports = {
           message: "Amount cannot be negative",
         });
       }
-      const newBalance = parseInt(account.accountBalance) + amount;
-      account.accountBalance = newBalance;
+      const newBalance = parseInt(accountData.accountBalance) + amount;
+      accountData.accountBalance = newBalance;
       const transactionReport = new transactionSchema({
-        accountId: account._id,
+        accountId: accountData._id,
         transactionAmount: amount,
         transactionType: "Deposit",
       });
       await transactionReport.save();
-      await account.save();
-      res.status(202).json({
+      await accountData.save();
+      res.status(201).json({
         success: true,
         message: "Amount Deposited",
-        accountBalance: account.accountBalance,
+        accountBalance: accountData.accountBalance,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: "Error!",
+        error: error.message,
+      });
+    }
+  },
+
+  withdraw: async (req: Request, res: Response) => {
+    try {
+      const { accountNumber, accountPin, amount } = req.body;
+      const accountData = await accountSchema.findOne({ accountNumber });
+      const isPinCorrect: boolean = await bcrypt.compare(
+        accountPin.toString(),
+        accountData.pin
+      );
+      if (!isPinCorrect) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid Pin",
+        });
+      }
+      if (accountData.isLocked) {
+        return res.status(401).json({
+          success: false,
+          message: "Account is Locked",
+        });
+      }
+      if (amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Amount cannot be negative",
+        });
+      }
+      if (accountData.accountBalance < amount) {
+        return res.status(400).json({
+          success: false,
+          message: "Insufficient Balance",
+        });
+      }
+      const newBalance = parseInt(accountData.accountBalance) - amount;
+      accountData.accountBalance = newBalance;
+      const transactionReport = new transactionSchema({
+        accountId: accountData._id,
+        transactionAmount: amount,
+        transactionType: "Withdraw",
+      });
+      await transactionReport.save();
+      await accountData.save();
+      res.status(201).json({
+        success: true,
+        message: "Amount Withdrawn",
+        accountBalance: accountData.accountBalance,
       });
     } catch (error: any) {
       res.status(500).json({
