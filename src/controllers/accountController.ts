@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 
 const accountSchema = require("../models/accountModel");
+const transactionSchema = require("../models/transactionModel");
 
 // Function to generate a random number
 function generateRandomNumber(length: number): string {
@@ -126,54 +127,51 @@ module.exports = {
   deposit: async (req: Request, res: Response) => {
     try {
       const { accountNumber, accountPin, amount } = req.body;
-      const isAccountNumberExist = await accountSchema.findOne({
-        accountNumber: accountNumber,
-      });
-      const isPinCorrect = await bcrypt.compare(
-        accountPin.toString(),
-        isAccountNumberExist.pin
-      );
-      if (isAccountNumberExist) {
-        if (isPinCorrect) {
-          if (isAccountNumberExist.isLocked === false) {
-            if (amount >= 0) {
-              const accountBalanceNumber = parseInt(
-                isAccountNumberExist.accountBalance
-              );
-              isAccountNumberExist.accountBalance =
-                accountBalanceNumber + amount;
-              await isAccountNumberExist.save();
-              res.status(202).json({
-                success: true,
-                message: "Amount Deposited",
-                accountBalance: isAccountNumberExist.accountBalance,
-              });
-            } else {
-              res.status(400).json({
-                success: false,
-                message: "Amount cannot be negative",
-              });
-            }
-          } else {
-            res.status(401).send({
-              success: false,
-              message: "Account is Locked",
-            });
-          }
-        } else {
-          res.status(401).json({
-            success: false,
-            message: "Invalid Pin",
-          });
-        }
-      } else {
-        res.status(404).json({
+      const account = await accountSchema.findOne({ accountNumber });
+      if (!account) {
+        return res.status(404).json({
           success: false,
           message: "Account Number Does Not Exist",
         });
       }
+      const isPinCorrect: boolean = await bcrypt.compare(
+        accountPin.toString(),
+        account.pin
+      );
+      if (!isPinCorrect) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid Pin",
+        });
+      }
+      if (account.isLocked) {
+        return res.status(401).json({
+          success: false,
+          message: "Account is Locked",
+        });
+      }
+      if (amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Amount cannot be negative",
+        });
+      }
+      const newBalance = parseInt(account.accountBalance) + amount;
+      account.accountBalance = newBalance;
+      const transactionReport = new transactionSchema({
+        accountId: account._id,
+        transactionAmount: amount,
+        transactionType: "Deposit",
+      });
+      await transactionReport.save();
+      await account.save();
+      res.status(202).json({
+        success: true,
+        message: "Amount Deposited",
+        accountBalance: account.accountBalance,
+      });
     } catch (error: any) {
-      res.status(500).send({
+      res.status(500).json({
         success: false,
         message: "Error!",
         error: error.message,
