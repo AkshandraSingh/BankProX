@@ -284,8 +284,12 @@ module.exports = {
           message: "Amount cannot be negative",
         });
       }
-      const fromAccountBalanceNumber = parseInt(fromAccountData.accountBalance);
-      const toAccountBalanceNumber = parseInt(toAccountData.accountBalance);
+      const fromAccountBalanceNumber: number = parseInt(
+        fromAccountData.accountBalance
+      );
+      const toAccountBalanceNumber: number = parseInt(
+        toAccountData.accountBalance
+      );
       if (fromAccountBalanceNumber < amount) {
         return res.status(400).json({
           success: false,
@@ -312,6 +316,40 @@ module.exports = {
         success: true,
         message: "Amount Transferred",
         yourAccountBalance: fromAccountData.accountBalance,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: "Error!",
+        error: error.message,
+      });
+    }
+  },
+
+  viewAccount: async (req: Request, res: Response) => {
+    try {
+      const { accountNumber, accountPin } = req.body;
+      const accountData = await accountSchema.findOne({ accountNumber });
+      if (!accountData) {
+        return res.status(404).json({
+          success: false,
+          message: "Account Number Does Not Exist",
+        });
+      }
+      const isPinCorrect: boolean = await bcrypt.compare(
+        accountPin.toString(),
+        accountData.pin
+      );
+      if (!isPinCorrect) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid Pin",
+        });
+      }
+      res.status(200).send({
+        success: true,
+        message: "Account Details",
+        accountDetails: accountData,
       });
     } catch (error: any) {
       res.status(500).json({
