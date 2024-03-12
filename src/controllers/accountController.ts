@@ -51,6 +51,12 @@ module.exports = {
       const isAccountNumberExist = await accountSchema.findOne({
         accountNumber: accountNumber,
       });
+      if (!isAccountNumberExist) {
+        return res.status(404).json({
+          success: false,
+          message: "Account Number Does Not Exist",
+        });
+      }
       const isPinCorrect = await bcrypt.compare(
         accountPin.toString(),
         isAccountNumberExist.pin
@@ -89,6 +95,12 @@ module.exports = {
       const isAccountNumberExist = await accountSchema.findOne({
         accountNumber: accountNumber,
       });
+      if (!isAccountNumberExist) {
+        return res.status(404).json({
+          success: false,
+          message: "Account Number Does Not Exist",
+        });
+      }
       const isPinCorrect = await bcrypt.compare(
         accountPin.toString(),
         isAccountNumberExist.pin
@@ -183,6 +195,12 @@ module.exports = {
     try {
       const { accountNumber, accountPin, amount } = req.body;
       const accountData = await accountSchema.findOne({ accountNumber });
+      if (!accountData) {
+        return res.status(404).json({
+          success: false,
+          message: "Account Number Does Not Exist",
+        });
+      }
       const isPinCorrect: boolean = await bcrypt.compare(
         accountPin.toString(),
         accountData.pin
@@ -224,6 +242,76 @@ module.exports = {
         success: true,
         message: "Amount Withdrawn",
         accountBalance: accountData.accountBalance,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: "Error!",
+        error: error.message,
+      });
+    }
+  },
+
+  transfer: async (req: Request, res: Response) => {
+    try {
+      const { fromAccountNumber, fromAccountPin, toAccountNumber, amount } =
+        req.body;
+      const fromAccountData = await accountSchema.findOne({
+        accountNumber: fromAccountNumber,
+      });
+      const toAccountData = await accountSchema.findOne({
+        accountNumber: toAccountNumber,
+      });
+      const isFromPinCorrect: boolean = await bcrypt.compare(
+        fromAccountPin.toString(),
+        fromAccountData.pin
+      );
+      if (!isFromPinCorrect) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid From Pin",
+        });
+      }
+      if (fromAccountData.isLocked) {
+        return res.status(401).json({
+          success: false,
+          message: "Account is Locked",
+        });
+      }
+      if (amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Amount cannot be negative",
+        });
+      }
+      const fromAccountBalanceNumber = parseInt(fromAccountData.accountBalance);
+      const toAccountBalanceNumber = parseInt(toAccountData.accountBalance);
+      if (fromAccountBalanceNumber < amount) {
+        return res.status(400).json({
+          success: false,
+          message: "Insufficient Balance",
+        });
+      }
+      toAccountData.accountBalance = toAccountBalanceNumber + amount;
+      fromAccountData.accountBalance = fromAccountBalanceNumber - amount;
+      const transactionReportForSender = new transactionSchema({
+        accountId: fromAccountData._id,
+        transactionAmount: amount,
+        transactionType: "Transfer",
+      });
+      const transactionReportForReserver = new transactionSchema({
+        accountId: fromAccountData._id,
+        transactionAmount: amount,
+        transactionType: "Transfer",
+      });
+      await transactionReportForSender.save();
+      await transactionReportForReserver.save();
+      await fromAccountData.save();
+      await toAccountData.save();
+      res.status(200).send({
+        success: true,
+        message: "Amount Transferred",
+        yourAccountBalance: fromAccountData.accountBalance,
       });
     } catch (error: any) {
       res.status(500).json({
