@@ -22,13 +22,9 @@ module.exports = {
       const pin = generateRandomNumber(4);
       const accountNumber = generateRandomNumber(10);
       const bcryptPin: string = await bcrypt.hash(pin, 10);
-      const bcryptAccountBalance: string = await bcrypt.hash(
-        req.body.accountBalance.toString(),
-        10
-      );
       accountData.pin = bcryptPin;
       accountData.accountNumber = accountNumber;
-      accountData.accountBalance = bcryptAccountBalance;
+      accountData.accountBalance = req.body.accountBalance;
       accountData.userId = userId;
       await accountData.save();
       res.status(202).json({
@@ -118,6 +114,64 @@ module.exports = {
         success: true,
         message: "Account is Edited!",
       });
+    } catch (error: any) {
+      res.status(500).send({
+        success: false,
+        message: "Error!",
+        error: error.message,
+      });
+    }
+  },
+
+  deposit: async (req: Request, res: Response) => {
+    try {
+      const { accountNumber, accountPin, amount } = req.body;
+      const isAccountNumberExist = await accountSchema.findOne({
+        accountNumber: accountNumber,
+      });
+      const isPinCorrect = await bcrypt.compare(
+        accountPin.toString(),
+        isAccountNumberExist.pin
+      );
+      if (isAccountNumberExist) {
+        if (isPinCorrect) {
+          if (isAccountNumberExist.isLocked === false) {
+            if (amount >= 0) {
+              const accountBalanceNumber = parseInt(
+                isAccountNumberExist.accountBalance
+              );
+              isAccountNumberExist.accountBalance =
+                accountBalanceNumber + amount;
+              await isAccountNumberExist.save();
+              res.status(202).json({
+                success: true,
+                message: "Amount Deposited",
+                accountBalance: isAccountNumberExist.accountBalance,
+              });
+            } else {
+              res.status(400).json({
+                success: false,
+                message: "Amount cannot be negative",
+              });
+            }
+          } else {
+            res.status(401).send({
+              success: false,
+              message: "Account is Locked",
+            });
+          }
+        } else {
+          res.status(401).json({
+            success: false,
+            message: "Invalid Pin",
+          });
+        }
+      } else {
+        res.status(404).json({
+          success: false,
+          message: "Account Number Does Not Exist",
+        });
+      }
     } catch (error: any) {
       res.status(500).send({
         success: false,

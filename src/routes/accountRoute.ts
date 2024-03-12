@@ -9,6 +9,7 @@ accountRouter.post(
   "/lockAndUnlockAccount",
   accountController.lockAndUnlockAccount
 );
+accountRouter.post("/deposit", accountController.deposit);
 accountRouter.delete("/deleteAccount", accountController.deleteAccount);
 
 module.exports = accountRouter;
