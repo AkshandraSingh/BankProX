@@ -22,4 +22,21 @@ module.exports = {
       });
     }
   },
+  //* This is Admin Api (Only Admin can use)
+  getAllComplains: async (req: Request, res: Response) => {
+    try {
+      const complainData = await complainSchema.find();
+      res.status(200).json({
+        success: true,
+        message: "All complains fetched successfully",
+        complainData: complainData,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
 };
