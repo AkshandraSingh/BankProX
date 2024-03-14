@@ -12,7 +12,7 @@ const complainSchema = new mongoose.Schema({
   },
   complainDescription: {
     type: String,
-    default: 0,
+    required: true,
   },
   isActive: {
     type: Boolean,

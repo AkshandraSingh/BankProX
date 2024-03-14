@@ -8,9 +8,5 @@ transactionRouter.get(
   "/viewAllTransaction/:accountId",
   transactionController.viewAllTransaction
 );
-transactionRouter.get(
-  "/viewTodayTransactions/:accountId",
-  transactionController.viewTodayTransactions
-);
 
 module.exports = transactionRouter;
