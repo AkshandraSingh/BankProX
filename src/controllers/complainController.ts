@@ -39,4 +39,22 @@ module.exports = {
       });
     }
   },
+  //* This is Admin Api (Only Admin can use)
+  removeComplains: async (req: Request, res: Response) => {
+    try {
+      const complainId = req.params.complainId;
+      const complainData = await complainSchema.findByIdAndDelete(complainId);
+      res.status(200).json({
+        success: true,
+        message: "Complain removed successfully",
+        complainData: complainData,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
 };
