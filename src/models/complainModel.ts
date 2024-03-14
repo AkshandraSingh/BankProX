@@ -14,6 +14,10 @@ const complainSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  isApprove: {
+    type: Boolean,
+    default: false,
+  },
   isActive: {
     type: Boolean,
     default: true,
