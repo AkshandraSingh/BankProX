@@ -2,7 +2,9 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 
 const accountSchema = require("../models/accountModel");
+const userSchema = require("../models/userModel");
 const transactionSchema = require("../models/transactionModel");
+const emailService = require("../services/emailService");
 
 // Function to generate a random number
 function generateRandomNumber(length: number): string {
@@ -140,6 +142,8 @@ module.exports = {
     try {
       const { accountNumber, accountPin, amount } = req.body;
       const accountData = await accountSchema.findOne({ accountNumber });
+      const userData = await userSchema.findById(accountData.userId);
+      const userEmail = userData.userEmail;
       if (!accountData) {
         return res.status(404).json({
           success: false,
@@ -177,6 +181,7 @@ module.exports = {
       });
       await transactionReport.save();
       await accountData.save();
+      await emailService.mailOptions(userEmail, "temp", 2);
       res.status(201).json({
         success: true,
         message: "Amount Deposited",
@@ -195,6 +200,8 @@ module.exports = {
     try {
       const { accountNumber, accountPin, amount } = req.body;
       const accountData = await accountSchema.findOne({ accountNumber });
+      const userData = await userSchema.findById(accountData.userId);
+      const userEmail = userData.userEmail;
       if (!accountData) {
         return res.status(404).json({
           success: false,
@@ -238,6 +245,7 @@ module.exports = {
       });
       await transactionReport.save();
       await accountData.save();
+      await emailService.mailOptions(userEmail, "temp", 3);
       res.status(201).json({
         success: true,
         message: "Amount Withdrawn",
@@ -259,6 +267,8 @@ module.exports = {
       const fromAccountData = await accountSchema.findOne({
         accountNumber: fromAccountNumber,
       });
+      const fromUserData = await userSchema.findById(fromAccountData.userId);
+      const fromUserEmail = fromUserData.userEmail;
       const toAccountData = await accountSchema.findOne({
         accountNumber: toAccountNumber,
       });
@@ -312,6 +322,7 @@ module.exports = {
       await transactionReportForReserver.save();
       await fromAccountData.save();
       await toAccountData.save();
+      await emailService.mailOptions(fromUserEmail, "temp", 4);
       res.status(200).send({
         success: true,
         message: "Amount Transferred",
